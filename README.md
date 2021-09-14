@@ -31,7 +31,7 @@ AWS Elastic Beanstalk executes your Java Web Application using a command similar
 >java -jar target/*your app*.jar
 
 The output of the java command is sent to standard out (stdout) and standard error (stderr)
-The AWS Elastic Beanstalk environment leverage Linux rsyslog to capture stdout and stderr to capture the information into log files.
+The AWS Elastic Beanstalk environment leverage Linux rsyslog to capture stdout and stderr and write the logs into log files.
 
 This is done through standard rsyslog configuration found here:
 
