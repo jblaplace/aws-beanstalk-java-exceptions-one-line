@@ -81,7 +81,7 @@ Here we use Logback and define a FILE appender that writes our application logs 
         </appender>
 
 
-        <logger name="com.amazon.awsjb.springbootapp" level="DEBUG"
+        <logger name="info.laplace.awsjb.springbootapp" level="DEBUG"
             additivity="false">
             <appender-ref ref="STDOUT" />
             <appender-ref ref="FILE" />

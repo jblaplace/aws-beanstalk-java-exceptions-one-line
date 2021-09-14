@@ -1,4 +1,4 @@
-package com.amazon.awsjb.springbootapp;
+package info.laplace.awsjb.springbootapp;
 
 import javax.servlet.http.HttpServletRequest;
 
