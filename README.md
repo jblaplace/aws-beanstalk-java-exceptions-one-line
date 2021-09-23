@@ -51,8 +51,10 @@ The CloudWatch Logs agent simply streams the content of /var/log/web.stdout.log 
 To remediate to this problem the following approach is recommended:
 - First the application should write its log to its own log file managed by the application Logger
 
-Here we use Logback and define a FILE appender that writes our application logs to myapp.log
+Here we use Logback and define a FILE appender that writes our application logs to /opt/myapp/myapp.log
 
+It is highly recommended to keep the log file outside of /var/app/current which is the directory where the application is deployed. 
+The reason for that is that directory gets recreated on subsequent deploments.
 
     <?xml version="1.0" encoding="UTF-8"?>
     <configuration>
@@ -69,7 +71,7 @@ Here we use Logback and define a FILE appender that writes our application logs 
         </appender>
 
         <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-            <file>myapp.log</file>
+            <file>/opt/myapp/myapp.log</file>
             <append>true</append>
             <!-- set immediateFlush to false for much higher logging throughput -->
             <immediateFlush>true</immediateFlush>
@@ -96,7 +98,8 @@ Here we use Logback and define a FILE appender that writes our application logs 
 - Pay attention to the pattern: \<pattern>%-4relative [%thread] %-5level %logger{35} - %msg **%xException %nopex**%n\</pattern>
 - You now need to configure your Beanstalk Environment to stream the application log file back to CloudWatch Logs
     - Leverage **.ebextensions** and create a **.config** file which simply creates a temporary file on the Beanstalk instance. 
-    - That file is a CloudWatch Logs agent configuration file. 
+    - That file is a CloudWatch Logs agent configuration file.
+    - The file also creates the directory that will hold the log file and sets the proper permissions on the directory. 
     - The file should reside in the .ebextensions folder found at the root of the Application  Zip/package sent to Beanstalk. 
         > Ex: /.ebexternsions/myapp-log.config
 
@@ -113,8 +116,8 @@ Here we use Logback and define a FILE appender that writes our application logs 
                             "files": {
                                 "collect_list": [
                                     {
-                                        "file_path": "/var/app/current/myapp.log",
-                                        "log_group_name" : "`{"Fn::Join":["/", ["/aws/elasticbeanstalk", { "Ref":"AWSEBEnvironmentName" }, "var/myapp.log"]]}`",
+                                        "file_path": "/opt/myapp/myapp.log",
+                                        "log_group_name" : "`{"Fn::Join":["/", ["/aws/elasticbeanstalk", { "Ref":"AWSEBEnvironmentName" }, "opt/myapp/myapp.log"]]}`",
                                         "log_stream_name": "{instance_id}"
                                     }
                                 ]
@@ -122,7 +125,12 @@ Here we use Logback and define a FILE appender that writes our application logs 
                         }
                     }
         }
-
+        commands:
+            01directories:
+                command: "mkdir -p /opt/myapp/logs"
+            02directories:
+                command: "chown -R webapp:webapp /opt/myapp" 
+        
 - Leverage **.platform** configuration hooks to copy the temporary file /tmp/myapp-log.json to the proper CloudWatch agent configuration directory. 
     - We use the **confighooks** and **hooks** **postdeploy** hooks to execute a scrip that copies over the configuration 
     > Ex: /.platform/confighooks/postdeploy/setupCWL.sh and 
@@ -151,7 +159,7 @@ Here we use Logback and define a FILE appender that writes our application logs 
                     setupCWL.sh
         your-app.jar
 
-The Log in CloudWatch Logs will be one entry as desired. There will be a new Log group /aws/elasticbeanstalk/`your environment`/log/myapp.log with a stream per instance.
+The Log in CloudWatch Logs will be one entry as desired. There will be a new Log group /aws/elasticbeanstalk/`your environment`/opt/myapp/myapp.log with a stream per instance.
 
 # FAQ
 - Q. How do you package your Java Application?
